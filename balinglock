@@ -111,22 +111,26 @@ def parse(String description) {
 		responseMap.usedCode = userCode
 		responseMap.codeName = userCode
 		responseMap.method: "keypad"
+		sendEvent(name:"lock",value:"unlocked",descriptionText: ${userCode}, type:"digital")
 		
 	}
-	
-	if (cluster == CLUSTER_POWER && attrId == POWER_ATTR_BATTERY_PERCENTAGE_REMAINING) {
+	else if (cluster == CLUSTER_POWER && attrId == POWER_ATTR_BATTERY_PERCENTAGE_REMAINING) {
 		responseMap.name = "battery"
 		responseMap.value = Math.round(Integer.parseInt(descMap.value, 16) / 2)
 		responseMap.descriptionText = "Battery is at ${responseMap.value}%"
-	}	
-		
+	}
+	else {
+		displayDebugLog("Unable to parse message")
+	}
+	
+
 	if (responseMap.data) {
 		responseMap.data.lockName = deviceName
 	} else {
 		responseMap.data = [ lockName: deviceName ]
 	}
 	result << createEvent(responseMap)
-	log.info "ZigBee DTH - parseAttributeResponse() returning with result:- $result"
+	displayDebugLog("ZigBee DTH - parseAttributeResponse() returning with result:- $result")
 	return result
 }
 
