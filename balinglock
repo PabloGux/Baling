@@ -130,7 +130,7 @@ def parse(String description) {
 		responseMap.value = Math.round(Integer.parseInt(descMap.value, 16) / 2)
 		responseMap.descriptionText = "Battery is at ${responseMap.value}%"
 	}
-	else if if (cluster == "0003") {
+	else if (cluster == "0003") {
 		displayDebugLog("Cluster Identify Recieved")
 	}
 	else {
