@@ -2,11 +2,16 @@
 
  *
  */
+import groovy.json.JsonSlurper
+import groovy.json.JsonOutput
+import physicalgraph.zigbee.zcl.DataType
+
 
 metadata {
 	definition (name: "Baling Tech Lock", namespace: "pgux", author: "pgux") {
 		capability "Lock"
-		// capability "Battery"
+		capability "Lock Codes"
+		capability "Battery"
 
 		attribute "lastCheckin", "String"
 		attribute "lastOpened", "String"
