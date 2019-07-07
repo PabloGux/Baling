@@ -101,24 +101,40 @@ def parse(String description) {
  		//0101 door unlock
 		responseMap.displayed = true
 		responseMap.isStateChange = true
-		
-		displayDebugLog("User Unlock in hex: ${valueHex.substring(8,10)}")
-		def userCode = Integer.parseInt(valueHex.substring(8,10),16);
-		displayDebugLog("User Unlock in dec: ${userCode}")
-		responseMap.name = "lock"
-		responseMap.value = "unlocked"
-		responseMap.descriptionText = "Unlocked"
-		responseMap.usedCode = userCode
-		responseMap.codeName = userCode
-		responseMap.method = "keypad"
+		if (valueHex.substring(8,10) != "00")
+		{
+			displayDebugLog("User Unlock in hex: ${valueHex.substring(8,10)}")
+			def userCode = Integer.parseInt(valueHex.substring(8,10),16);
+			displayDebugLog("User Unlock in dec: ${userCode}")
+			responseMap.name = "lock"
+			responseMap.value = "unlocked"
+			responseMap.descriptionText = "Unlocked by ${userCode}"
+			responseMap.usedCode = userCode
+			responseMap.codeName = userCode
+			responseMap.method = "keypad"
+			responseMap.data = [ codeId: userCode as String, usedCode: userCode, codeName: userCode, method: "keypad" ]
+		}
+		else
+		{
+			displayDebugLog("Door is now locked since user code is 00")
+			responseMap.name = "lock"
+			responseMap.value = "locked"
+			responseMap.descriptionText = "locked"
+			responseMap.usedCode = 00
+			responseMap.codeName = 00
+			responseMap.method = "keypad"
+		}
 	}
 	else if (cluster == CLUSTER_POWER && attrId == POWER_ATTR_BATTERY_PERCENTAGE_REMAINING) {
 		responseMap.name = "battery"
 		responseMap.value = Math.round(Integer.parseInt(descMap.value, 16) / 2)
 		responseMap.descriptionText = "Battery is at ${responseMap.value}%"
 	}
+	else if if (cluster == "0003") {
+		displayDebugLog("Cluster Identify Recieved")
+	}
 	else {
-		displayDebugLog("Unable to parse message")
+		displayDebugLog("Unable to parse cluster code ${cluster}")
 	}
 	
 
