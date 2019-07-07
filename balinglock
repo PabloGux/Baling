@@ -36,13 +36,39 @@ metadata {
 	}
 }
 
+// Globals - Cluster IDs
+private getCLUSTER_POWER() { 0x0001 }
+private getCLUSTER_DOORLOCK() { 0x0101 }
+private getCLUSTER_ALARM() { 0x0009 }
+
+// Globals - Command IDs
+private getDOORLOCK_CMD_LOCK_DOOR() { 0x00 }
+private getDOORLOCK_CMD_UNLOCK_DOOR() { 0x01 }
+private getDOORLOCK_CMD_USER_CODE_SET() { 0x05 }
+private getDOORLOCK_CMD_USER_CODE_GET() { 0x06 }
+private getDOORLOCK_CMD_CLEAR_USER_CODE() { 0x07 }
+private getDOORLOCK_RESPONSE_OPERATION_EVENT() { 0x20 }
+private getDOORLOCK_RESPONSE_PROGRAMMING_EVENT() { 0x21 }
+private getPOWER_ATTR_BATTERY_PERCENTAGE_REMAINING() { 0x0021 }
+private getDOORLOCK_ATTR_LOCKSTATE() { 0x0000 }
+private getDOORLOCK_ATTR_NUM_PIN_USERS() { 0x0012 }
+private getDOORLOCK_ATTR_MAX_PIN_LENGTH() { 0x0017 }
+private getDOORLOCK_ATTR_MIN_PIN_LENGTH() { 0x0018 }
+private getDOORLOCK_ATTR_SEND_PIN_OTA() { 0x0032 }
+private getALARM_ATTR_ALARM_COUNT() { 0x0000 }
+private getALARM_CMD_ALARM() { 0x00 }
+
+
 // Parse incoming device messages to generate events
 def parse(String description) {
 	def cluster = description.split(",").find {it.split(":")[0].trim() == "cluster"}?.split(":")[1].trim()
 	def attrId = description.split(",").find {it.split(":")[0].trim() == "attrId"}?.split(":")[1].trim()
 	def encoding = Integer.parseInt(description.split(",").find {it.split(":")[0].trim() == "encoding"}?.split(":")[1].trim(), 16)
 	def valueHex = description.split(",").find {it.split(":")[0].trim() == "value"}?.split(":")[1].trim()
+	def deviceName = device.displayName
 	Map map = [:]
+	Map responseMap = [:]
+	def result = []
 
 	//if (!oldFirmware & valueHex != null & encoding > 0x18 & encoding < 0x3e) {
 		//displayDebugLog("Data type of payload is little-endian; reversing byte order")
@@ -71,25 +97,37 @@ def parse(String description) {
 		displayDebugLog("Unable to parse message")
 	}*/
   
- if (cluster == "0101") {  
+	if (cluster == "0101") {  
  		//0101 door unlock
+		responseMap.displayed = true
+		responseMap.isStateChange = true
+		
 		displayDebugLog("User Unlock in hex: ${valueHex.substring(8,10)}")
 		def userCode = Integer.parseInt(valueHex.substring(8,10),16);
 		displayDebugLog("User Unlock in dec: ${userCode}")
+		responseMap.name = "lock"
+		responseMap.value = "unlocked"
+		responseMap.descriptionText = "Unlocked"
+		responseMap.usedCode = userCode
+		responseMap.codeName = userCode
+		responseMap.method: "keypad"
 		
+	}
+	
+	if (cluster == CLUSTER_POWER && attrId == POWER_ATTR_BATTERY_PERCENTAGE_REMAINING) {
+		responseMap.name = "battery"
+		responseMap.value = Math.round(Integer.parseInt(descMap.value, 16) / 2)
+		responseMap.descriptionText = "Battery is at ${responseMap.value}%"
+	}	
 		
-}
-
-
-/*
-	if (map != [:]) {
-		displayInfoLog(map.descriptionText)
-		displayDebugLog("Creating event $map")
-		return createEvent(map)
-	} else
-		return [:]
-    
-*/
+	if (responseMap.data) {
+		responseMap.data.lockName = deviceName
+	} else {
+		responseMap.data = [ lockName: deviceName ]
+	}
+	result << createEvent(responseMap)
+	log.info "ZigBee DTH - parseAttributeResponse() returning with result:- $result"
+	return result
 }
 
 // Reverses order of bytes in hex string
