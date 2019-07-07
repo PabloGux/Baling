@@ -255,6 +255,11 @@ def deleteCode() {
 def getCodes() {
     displayDebugLog ("API getCodes() not implemented yet in Baling ")
 }
+
+
+def setCodeLength() {
+    displayDebugLog ("API setCodeLength() not implemented yet in Baling ")
+}
 /*************************************************************************************************************/
 
 /**
