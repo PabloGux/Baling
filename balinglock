@@ -235,7 +235,7 @@ def init() {
  * @return cmds: The command(s) fired for reading attributes
  */
 def reloadAllCodes() {
-	log.trace "ZigBee DTH - Executing reloadAllCodes() for device ${device.displayName}"
+	displayDebugLog ("ZigBee DTH - Executing reloadAllCodes() for device ${device.displayName}")
 	sendEvent(name: "scanCodes", value: "Scanning", descriptionText: "Code scan in progress", displayed: false)
 	def lockCodes = loadLockCodes()
 	sendEvent(lockCodesEvent(lockCodes))
@@ -244,7 +244,7 @@ def reloadAllCodes() {
 	state.checkCode = state.checkCode ?: 0
 	cmds += requestCode(state.checkCode)
 
-	log.info "ZigBee DTH - reloadAllCodes() returning with cmds:- $cmds"
+	displayDebugLog ("ZigBee DTH - reloadAllCodes() returning with cmds:- $cmds")
 	return cmds
 }
 
@@ -283,7 +283,7 @@ def validateAttributes() {
 		cmds += zigbee.readAttribute(CLUSTER_DOORLOCK, DOORLOCK_ATTR_MAX_PIN_LENGTH)
 	}
 	cmds = cmds.flatten()
-	log.trace "validateAttributes returning commands list: " + cmds
+	displayDebugLog ("validateAttributes returning commands list: $cmds")
 	cmds
 }
 
