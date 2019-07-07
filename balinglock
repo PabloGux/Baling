@@ -111,7 +111,6 @@ def parse(String description) {
 		responseMap.usedCode = userCode
 		responseMap.codeName = userCode
 		responseMap.method: "keypad"
-		sendEvent(name:"lock",value:"unlocked",descriptionText: ${userCode}, type:"digital")
 		
 	}
 	else if (cluster == CLUSTER_POWER && attrId == POWER_ATTR_BATTERY_PERCENTAGE_REMAINING) {
