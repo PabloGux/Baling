@@ -161,20 +161,6 @@ def reverseHexString(hexString) {
 	return reversed
 }
 
-// Parse open/close report
-private parseContact(closedOpen) {
-	def value = ["closed", "open"]
-	def desc = ["closed", "opened"]
-	def coreEvent = ["lastClosed", "lastOpened"]
-	displayDebugLog("Setting ${coreEvent[closedOpen]} to current date/time for webCoRE")
-	sendEvent(name: coreEvent[closedOpen], value: now(), descriptionText: "Updated ${coreEvent[closedOpen]} (webCoRE)")
-	return [
-		name: 'contact',
-		value: value[closedOpen],
-		isStateChange: true,
-		descriptionText: "Contact was ${desc[closedOpen]}"
-	]
-}
 
 // Convert raw 4 digit integer voltage value into percentage based on minVolts/maxVolts range
 private parseBattery(description) {
@@ -240,4 +226,91 @@ def updated() {
 
 def init() {
 
+}
+
+
+/**
+ * API endpoint for server smart app to scan the lock and populate the attributes. Called only when the attributes are not populated.
+ *
+ * @return cmds: The command(s) fired for reading attributes
+ */
+def reloadAllCodes() {
+	log.trace "ZigBee DTH - Executing reloadAllCodes() for device ${device.displayName}"
+	sendEvent(name: "scanCodes", value: "Scanning", descriptionText: "Code scan in progress", displayed: false)
+	def lockCodes = loadLockCodes()
+	sendEvent(lockCodesEvent(lockCodes))
+	def cmds = validateAttributes()
+
+	state.checkCode = state.checkCode ?: 0
+	cmds += requestCode(state.checkCode)
+
+	log.info "ZigBee DTH - reloadAllCodes() returning with cmds:- $cmds"
+	return cmds
+}
+
+/*************************************************************************************************************/
+
+/**
+ * Reads the 'lockCodes' attribute and parses the same
+ *
+ * @returns Map: The lockCodes map
+ */
+private Map loadLockCodes() {
+	parseJson(device.currentValue("lockCodes") ?: "{}") ?: [:]
+}
+
+
+/**
+ * Validates attributes and if attributes are not populated, adds the command maps to list of commands
+ * @return List of command maps or empty list
+ */
+def validateAttributes() {
+	def cmds = []
+	if (!state.attrAlarmCountSet) {
+		state.attrAlarmCountSet = true
+		cmds += zigbee.configureReporting(CLUSTER_ALARM, ALARM_ATTR_ALARM_COUNT,
+				DataType.UINT16, 0, 21600, null)
+	}
+	// DOORLOCK_ATTR_SEND_PIN_OTA is sometimes getting reset to 0. Hence, writing it explicitly to 1.
+	cmds += zigbee.writeAttribute(CLUSTER_DOORLOCK, DOORLOCK_ATTR_SEND_PIN_OTA, DataType.BOOLEAN, 1)
+	if(!device.currentValue("maxCodes")) {
+		cmds += zigbee.readAttribute(CLUSTER_DOORLOCK, DOORLOCK_ATTR_NUM_PIN_USERS)
+	}
+	if(!device.currentValue("minCodeLength")) {
+		cmds += zigbee.readAttribute(CLUSTER_DOORLOCK, DOORLOCK_ATTR_MIN_PIN_LENGTH)
+	}
+	if(!device.currentValue("maxCodeLength")) {
+		cmds += zigbee.readAttribute(CLUSTER_DOORLOCK, DOORLOCK_ATTR_MAX_PIN_LENGTH)
+	}
+	cmds = cmds.flatten()
+	log.trace "validateAttributes returning commands list: " + cmds
+	cmds
+}
+
+/**
+ * Constructs the ZigBee command for user code get
+ *
+ * @param codeID: The code slot number
+ *
+ * @return The command for user code get
+ */
+def requestCode(codeID) {
+	return zigbee.command(CLUSTER_DOORLOCK, DOORLOCK_CMD_USER_CODE_GET, getLittleEndianHexString(codeID))
+}
+
+
+/**
+ * Returns hex string in little endian format
+ */
+def getLittleEndianHexString(numStr) {
+	return zigbee.swapEndianHex(zigbee.convertToHexString(numStr.toInteger(), 4))
+}
+
+/**
+ * Populates the 'lockCodes' attribute by calling send event
+ *
+ * @param lockCodes The codes in a lock
+ */
+private Map lockCodesEvent(lockCodes) {
+	createEvent(name: "lockCodes", value: util.toJson(lockCodes), displayed: false, descriptionText: "'lockCodes' attribute updated")
 }
