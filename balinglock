@@ -45,9 +45,9 @@ def parse(String description) {
 	Map map = [:]
 
 	//if (!oldFirmware & valueHex != null & encoding > 0x18 & encoding < 0x3e) {
-		displayDebugLog("Data type of payload is little-endian; reversing byte order")
+		//displayDebugLog("Data type of payload is little-endian; reversing byte order")
 		// Reverse order of bytes in description's payload for LE data types - required for Hubitat firmware 2.0.5 or newer
-		valueHex = reverseHexString(valueHex)
+		//valueHex = reverseHexString(valueHex)
 	//}
 
 	displayDebugLog("Parsing message: ${description}")
@@ -72,7 +72,8 @@ def parse(String description) {
 	}*/
   
  if (cluster == "0101") {  
- 		//door unlock
+ 		//0101 door unlock
+		displayDebugLog("User Unlock in hex: ${valueHex.substring(8,10)}")
 		
 }
 
