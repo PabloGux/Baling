@@ -248,7 +248,7 @@ def reloadAllCodes() {
 	return cmds
 }
 
-def deleteCode() {
+def deleteCode(x) {
     displayDebugLog ("API deleteCode not implemented yet in Baling ")
 }
 
@@ -257,8 +257,12 @@ def getCodes() {
 }
 
 
-def setCodeLength() {
+def setCodeLength(x) {
     displayDebugLog ("API setCodeLength not implemented yet in Baling ")
+}
+
+def setCode (x,y,z) {
+    displayDebugLog ("API setCode not implemented yet in Baling ")
 }
 /*************************************************************************************************************/
 
