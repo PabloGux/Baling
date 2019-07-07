@@ -110,8 +110,7 @@ def parse(String description) {
 		responseMap.descriptionText = "Unlocked"
 		responseMap.usedCode = userCode
 		responseMap.codeName = userCode
-		responseMap.method: "keypad"
-		
+		responseMap.method = "keypad"
 	}
 	else if (cluster == CLUSTER_POWER && attrId == POWER_ATTR_BATTERY_PERCENTAGE_REMAINING) {
 		responseMap.name = "battery"
