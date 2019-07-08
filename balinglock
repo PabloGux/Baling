@@ -235,6 +235,7 @@ def deleteCode(x) {
     displayDebugLog ("API deleteCode not implemented yet in Baling ")
 }
 
+/***** API CALL ****/
 def getCodes() {
     displayDebugLog ("getCodes() was called")
     def jsonResponse = getLockCodes()
@@ -242,12 +243,12 @@ def getCodes() {
     sendEvent (name: "lockCodes", value: jsonResponse, descriptionText: "'lockCodes' attribute updated")
     return jsonResponse
 }
-
+/***** helper, not apo ******/
 private getLockCodes() {
 	displayDebugLog ("getLockCodes() was called")
 	// def jsonResponse = JsonOutput.toJson([1: "Admin", 11: "Pablo", 12: "Ale", 13: "Dario", 14: "Papa"])
 	// return jsonResponse
-	return '{"1":{"name":"Admin","code":"00000000"},"11":{"name":"Pablo","code":"00000000"},"12":{"name":"Alejandro","code":"00000000"},"13":{"name":"Dario","code":"00000000"}}'
+	return '{1:{name:"Admin",code:"00000000"},11:{name:"Pablo",code:"00000000"},12:{name:"Alejandro",code:"00000000"},13:{name:"Dario",code:"00000000"}}'
 }
 
 def setCodeLength(length) {
