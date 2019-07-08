@@ -237,8 +237,9 @@ def getCodes() {
 }
 
 private getLockCodes() {
-	def jsonResponse = JsonOutput.toJson([1: "Admin", 11: "Pablo", 12: "Ale", 13: "Dario", 14: "Papa"])
-	return jsonResponse
+	// def jsonResponse = JsonOutput.toJson([1: "Admin", 11: "Pablo", 12: "Ale", 13: "Dario", 14: "Papa"])
+	// return jsonResponse
+	return '{"1":{"name":"Admin","code":"00000000"},"11":{"name":"Pablo","code":"00000000"},"12":{"name":"Alejandro","code":"00000000"},"13":{"name":"Dario","code":"00000000"}}'
 }
 
 def setCodeLength(length) {
