@@ -9,7 +9,7 @@ import groovy.json.JsonOutput
 metadata {
 	definition (name: "Baling Tech Lock", namespace: "pgux", author: "pgux") {
 		capability "Lock"
-		capability "Lock Codes"
+		//capability "Lock Codes"
 		capability "Battery"
 
 		attribute "lastCheckin", "String"
@@ -166,40 +166,18 @@ def reverseHexString(hexString) {
 private parseBattery(description) {
 }
 
-//capability commands
+
+
+
+//////////////////////////////////////////////////////////////
+// capability commands
+/////////////////////////////////////////////////////////////
 def lock(){
-    /* def descriptionText = "${device.displayName} was locked"
-    if (txtEnable) log.info "${descriptionText}"
-    sendEvent(name:"lock",value:"locked",descriptionText: descriptionText, type:"digital")
-    */
+    sendEvent(name:"lock",value:"locked", type:"digital")
 }
 
 def unlock(){
-    /*
-    on sucess event
-        name	value								data
-        lock	unlocked | unlocked with timeout	[<codeNumber>:[code:<pinCode>, name:<display name for code>]]
-    */
-    /*
-    def descriptionText = "${device.displayName} was unlocked [digital]"
-    if (txtEnable) log.info "${descriptionText}"
-    sendEvent(name:"lock",value:"unlocked",descriptionText: descriptionText, type:"digital")
-    */
-}
-
-private def displayDebugLog(message) {
-	if (debugLogging)
-		log.debug "${device.displayName}: ${message}"
-}
-
-private def displayInfoLog(message) {
-	if (infoLogging || state.prefsSetCount != 1)
-		log.info "${device.displayName}: ${message}"
-}
-
-//Reset the batteryLastReplaced date to current date
-def resetBatteryReplacedDate(paired) {
-	
+    sendEvent(name:"lock",value:"unlocked", type:"digital")
 }
 
 // installed() runs just after a sensor is paired
@@ -257,11 +235,13 @@ def getCodes() {
 }
 
 
-def setCodeLength(x) {
-    displayDebugLog ("API setCodeLength not implemented yet in Baling ")
+def setCodeLength(length) {
+   displayDebugLog ("API setCodeLength not implemented yet in Baling ")
+   def descriptionText = "${device.displayName} codeLength set to ${length}"
+   sendEvent(name:"codeLength",value:length,descriptionText:"API setCodeLength not implemented yet in Baling")
 }
 
-def setCode (x,y,z) {
+def setCode(codeNumber, code, name = null) {
     displayDebugLog ("API setCode not implemented yet in Baling ")
 }
 
@@ -275,6 +255,22 @@ def setCode (x,y,z) {
 private Map loadLockCodes() {
 	parseJson(device.currentValue("lockCodes") ?: "{}") ?: [:]
 }
+
+private def displayDebugLog(message) {
+	if (debugLogging)
+		log.debug "${device.displayName}: ${message}"
+}
+
+private def displayInfoLog(message) {
+	if (infoLogging || state.prefsSetCount != 1)
+		log.info "${device.displayName}: ${message}"
+}
+
+//Reset the batteryLastReplaced date to current date
+def resetBatteryReplacedDate(paired) {
+	
+}
+
 
 
 /**
