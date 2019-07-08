@@ -80,8 +80,8 @@ def parse(String description) {
 		//valueHex = reverseHexString(valueHex)
 	//}
 
-	displayDebugLog("Parsing message: ${description}")
-	displayDebugLog("Message payload: ${valueHex}")
+	displayDebugLog("parse(): Parsing message: ${description}")
+	displayDebugLog("parse(): Message payload: ${valueHex}")
 
 	// lastCheckin can be used with webCoRE
 	sendEvent(name: "lastCheckin", value: now())
@@ -103,42 +103,34 @@ def parse(String description) {
   
 	if (cluster == "0101") {  
  		//0101 door unlock
-		responseMap.displayed = true
-		responseMap.isStateChange = true
 		if (valueHex.substring(8,10) != "00")
 		{
-			displayDebugLog("User Unlock in hex: ${valueHex.substring(8,10)}")
 			def userCode = Integer.parseInt(valueHex.substring(8,10),16);
-			displayDebugLog("User Unlock in dec: ${userCode}")
+			displayDebugLog("parse(): Cluster is 0101 - User Unlock in dec: ${userCode}")
 			responseMap.name = "lock"
 			responseMap.value = "unlocked"
 			responseMap.descriptionText = "Unlocked by ${userCode}"
-			responseMap.usedCode = userCode
-			responseMap.codeName = userCode
-			responseMap.method = "keypad"
 			responseMap.data = [ codeId: userCode as String, usedCode: userCode, codeName: userCode, method: "keypad" ]
 		}
 		else
 		{
-			displayDebugLog("Door is now locked since user code is 00")
+			displayDebugLog("arse(): Cluster is 0101, User is 00 - Door is now locked")
 			responseMap.name = "lock"
 			responseMap.value = "locked"
 			responseMap.descriptionText = "locked"
-			responseMap.usedCode = 00
-			responseMap.codeName = 00
-			responseMap.method = "keypad"
 		}
 	}
 	else if (cluster == CLUSTER_POWER && attrId == POWER_ATTR_BATTERY_PERCENTAGE_REMAINING) {
+		displayDebugLog	("parse(): Cluster is 0001 - Battery info")
 		responseMap.name = "battery"
 		responseMap.value = Math.round(Integer.parseInt(descMap.value, 16) / 2)
 		responseMap.descriptionText = "Battery is at ${responseMap.value}%"
 	}
 	else if (cluster == "0003") {
-		displayDebugLog("Cluster Identify Recieved")
+		displayDebugLog	("parse(): Cluster is 0003 - Identification request")
 	}
 	else {
-		displayDebugLog("Unable to parse cluster code ${cluster}")
+		displayDebugLog("parse(): Unknow cluster ${cluster}!!***************************")
 	}
 	
 
@@ -147,8 +139,11 @@ def parse(String description) {
 	} else {
 		responseMap.data = [ lockName: deviceName ]
 	}
-	result << createEvent(responseMap)
-	displayDebugLog("ZigBee DTH - parseAttributeResponse() returning with result:- $result")
+	
+	
+	// createEvent returns a Map that defines an Event
+	result = createEvent(responseMap)
+	displayDebugLog("parse(): Exiting method returning with event created as follow: $result")
 	return result
 }
 
