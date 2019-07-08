@@ -11,17 +11,7 @@ metadata {
 		capability "Lock"
 		capability "Lock Codes"
 		capability "Battery"
-
 		attribute "lastCheckin", "String"
-		attribute "lastOpened", "String"
-		attribute "lastClosed", "String"
-		attribute "batteryLastReplaced", "String"
-
-		// fingerprint for Xiaomi "Original" Door/Window Sensor
-		// fingerprint endpointId: "01", profileId: "0104", deviceId: "0104", inClusters: "0000,0003,FFFF,0019", outClusters: "0000,0004,0003,0006,0008,0005,0019", manufacturer: "LUMI", model: "lumi.sensor_magnet"
-
-		// fingerprint for Xiaomi Aqara Door/Window Sensor
-		// fingerprint endpointId: "01", profileId: "0104", deviceId: "5F01", inClusters: "0000,0003,FFFF,0006", outClusters: "0000,0004,FFFF", manufacturer: "LUMI", model: "lumi.sensor_magnet.aq2"
 
 		command "testUnlockWithCode", ["NUMBER"]
         command "testUnlockWithUserNumber" , ["NUMBER"]
@@ -29,14 +19,9 @@ metadata {
 	}
 
 	preferences {
-		//Battery Voltage Range
- 		//input name: "voltsmin", title: "Min Volts (0% battery = ___ volts, range 2.0 to 2.7). Default = 2.5 Volts", description: "", type: "decimal", range: "2..2.7"
- 		//input name: "voltsmax", title: "Max Volts (100% battery = ___ volts, range 2.8 to 3.4). Default = 3.0 Volts", description: "", type: "decimal", range: "2.8..3.4"
- 		//Logging Message Config
 		input name: "infoLogging", type: "bool", title: "Enable info message logging", description: ""
 		input name: "debugLogging", type: "bool", title: "Enable debug message logging", description: ""
-		//Firmware 2.0.5 Compatibility Fix Config
-		//input name: "oldFirmware", type: "bool", title: "DISABLE 2.0.5 firmware compatibility fix (for users of 2.0.4 or earlier)", description: ""
+
 	}
 }
 
@@ -81,34 +66,13 @@ def parse(String description) {
 	Map responseMap = [:]
 	def result = []
 
-	//if (!oldFirmware & valueHex != null & encoding > 0x18 & encoding < 0x3e) {
-		//displayDebugLog("Data type of payload is little-endian; reversing byte order")
-		// Reverse order of bytes in description's payload for LE data types - required for Hubitat firmware 2.0.5 or newer
-		//valueHex = reverseHexString(valueHex)
-	//}
-
 	displayDebugLog("parse(): Parsing message: ${description}")
 	displayDebugLog("parse(): Message payload: ${valueHex}")
 
 	// lastCheckin can be used with webCoRE
 	sendEvent(name: "lastCheckin", value: now())
-
-	// Send message data to appropriate parsing function based on the type of report
-/*	if (cluster == "0006") {
-		// Parse open / closed status report
-		map = parseContact(Integer.parseInt(valueHex))
-	} else if (attrId == "0005") {
-		displayDebugLog("Reset button was short-pressed")
-		// Parse battery level from longer type of announcement message
-		map = (valueHex.size() > 60) ? parseBattery(valueHex.split('FF42')[1]) : [:]
-	} else if (attrId == "FF01" || attrId == "FF02") {
-		// Parse battery level from hourly announcement message
-		map = (valueHex.size() > 30) ? parseBattery(valueHex) : [:]
-	} else {
-		displayDebugLog("Unable to parse message")
-	}*/
   
-	if (cluster == "0101") {  
+	if (cluster == CLUSTER_DOORLOCK) {  
  		//0101 door unlock
 		if (valueHex.substring(8,10) != "00")
 		{
@@ -123,9 +87,7 @@ def parse(String description) {
         			displayDebugLog ("parse(): Response Data was formed: ${responseMap.data}")
     			} else {
          			displayDebugLog ("parse(): unlock code not found in database!")
-				responseMap.data = ["${userCode}":[name:"${userCode}", code:"${userCode}"]]
-                
-                
+				    responseMap.data = ["${userCode}":[name:"${userCode}", code:"${userCode}"]]
     			}
 		}
 		else
@@ -136,10 +98,11 @@ def parse(String description) {
 			responseMap.descriptionText = "locked"
 		}
 	}
-	else if (cluster == CLUSTER_POWER && attrId == POWER_ATTR_BATTERY_PERCENTAGE_REMAINING) {
-		displayDebugLog	("parse(): Cluster is 0001 - Battery info")
+	else if (cluster == CLUSTER_POWER && attrId == "0021") {
+		displayDebugLog	("parse(): Cluster is 0001 - Battery info - POWER_ATTR_BATTERY_PERCENTAGE_REMAINING")
 		responseMap.name = "battery"
-		responseMap.value = Math.round(Integer.parseInt(descMap.value, 16) / 2)
+		responseMap.value = Math.round(Integer.parseInt(valueHex, 16) / 2)
+        displayDebugLog	("parse(): Battery is at ${responseMap.value}%")
 		responseMap.descriptionText = "Battery is at ${responseMap.value}%"
 	}
 	else if (cluster == "0003") {
@@ -148,7 +111,7 @@ def parse(String description) {
 		responseMap.value = now()
 	}
 	else {
-		displayDebugLog("parse(): Unknow cluster ${cluster}!!***************************")
+		displayDebugLog("parse(): Unknow cluster ${cluster}!!****************************************************************************************************")
 		responseMap.name = "lastCheckin"
 		responseMap.value = now()
 	}
@@ -198,6 +161,29 @@ def unlock(){
     sendEvent(name:"lock",value:"unlocked", type:"digital")
 }
 
+/***** API CALL ****/
+def getCodes() {
+    displayDebugLog ("getCodes() was called")
+    def jsonResponse = JsonOutput.toJson(getLockCodes())
+    displayDebugLog ("getCodes method return :${jsonResponse}")
+    sendEvent (name: "lockCodes", value: jsonResponse, descriptionText: "'lockCodes' attribute updated")
+    return jsonResponse
+}
+
+/***** helper, not apo ******/
+private getLockCodes() {
+	def hardCodes = [
+    			1 : [name : 'Admin', code: '10000001'],
+    			11 : [name : 'Pablo', code: '10000002'],
+    			12 : [name : 'Alejandro', code: '10000003'],
+    			13 : [name : 'Dario', code: '10000004'],
+    			14 : [name : 'Mary', code: '10000005'],
+                15 : [name : 'Ricardo', code: '10000005']
+			]
+	displayDebugLog ("getLockCodes() was called")
+	return hardCodes
+	//return '{1:{name:"Admin",code:"00000000"},11:{name:"Pablo",code:"00000000"},12:{name:"Alejandro",code:"00000000"},13:{name:"Dario",code:"00000000"}}'
+}
 
 // configure() runs after installed() when a sensor is paired or reconnected
 def configure() {
@@ -215,50 +201,8 @@ def init() {
 
 }
 
-
-/**
- * API endpoint for server smart app to scan the lock and populate the attributes. Called only when the attributes are not populated.
- *
- * @return cmds: The command(s) fired for reading attributes
- */
-def reloadAllCodes() {
-	displayDebugLog ("reloadAllCodes() Executing reloadAllCodes() for device ${device.displayName}")
-	sendEvent(name: "scanCodes", value: "Scanning", descriptionText: "Code scan in progress", displayed: false)
-	def lockCodes = loadLockCodes()
-	sendEvent(lockCodesEvent(lockCodes))
-	def cmds = validateAttributes()
-
-	state.checkCode = state.checkCode ?: 0
-	cmds += requestCode(state.checkCode)
-
-	displayDebugLog ("reloadAllCodes() returning with cmds:- $cmds")
-	return cmds
-}
-
 def deleteCode(x) {
     displayDebugLog ("API deleteCode not implemented yet in Baling ")
-}
-
-/***** API CALL ****/
-def getCodes() {
-    displayDebugLog ("getCodes() was called")
-    def jsonResponse = JsonOutput.toJson(getLockCodes())
-    displayDebugLog ("getCodes method return :${jsonResponse}")
-    sendEvent (name: "lockCodes", value: jsonResponse, descriptionText: "'lockCodes' attribute updated")
-    return jsonResponse
-}
-/***** helper, not apo ******/
-private getLockCodes() {
-	def hardCodes = [
-    			1 : [name : 'admin', code: '10000001'],
-    			11 : [name : 'pablo', code: '10000002'],
-    			12 : [name : 'alejandro', code: '10000003'],
-    			13 : [name : 'dario', code: '10000004'],
-    			14 : [name : 'papa', code: '10000005']
-			]
-	displayDebugLog ("getLockCodes() was called")
-	return hardCodes
-	//return '{1:{name:"Admin",code:"00000000"},11:{name:"Pablo",code:"00000000"},12:{name:"Alejandro",code:"00000000"},13:{name:"Dario",code:"00000000"}}'
 }
 
 def setCodeLength(length) {
@@ -271,16 +215,15 @@ def setCode(codeNumber, code, name = null) {
     displayDebugLog ("API setCode not implemented yet in Baling ")
 }
 
-/*************************************************************************************************************/
 
-/**
- * Reads the 'lockCodes' attribute and parses the same
- *
- * @returns Map: The lockCodes map
- */
-private Map loadLockCodes() {
-	parseJson(device.currentValue("lockCodes") ?: "{}") ?: [:]
-}
+
+
+
+
+
+//////////////////////////////////////////////////////////////
+// helper functions
+/////////////////////////////////////////////////////////////
 
 private def displayDebugLog(message) {
 	if (debugLogging)
@@ -290,11 +233,6 @@ private def displayDebugLog(message) {
 private def displayInfoLog(message) {
 	if (infoLogging || state.prefsSetCount != 1)
 		log.info "${device.displayName}: ${message}"
-}
-
-//Reset the batteryLastReplaced date to current date
-def resetBatteryReplacedDate(paired) {
-	
 }
 
 
@@ -325,35 +263,6 @@ def validateAttributes() {
 	displayDebugLog ("validateAttributes returning commands list: $cmds")
 	cmds
 }
-
-/**
- * Constructs the ZigBee command for user code get
- *
- * @param codeID: The code slot number
- *
- * @return The command for user code get
- */
-def requestCode(codeID) {
-	return zigbee.command(CLUSTER_DOORLOCK, DOORLOCK_CMD_USER_CODE_GET, getLittleEndianHexString(codeID))
-}
-
-
-/**
- * Returns hex string in little endian format
- */
-def getLittleEndianHexString(numStr) {
-	return zigbee.swapEndianHex(zigbee.convertToHexString(numStr.toInteger(), 4))
-}
-
-/**
- * Populates the 'lockCodes' attribute by calling send event
- *
- * @param lockCodes The codes in a lock
- */
-private Map lockCodesEvent(lockCodes) {
-	createEvent(name: "lockCodes", value: util.toJson(lockCodes), displayed: false, descriptionText: "'lockCodes' attribute updated")
-}
-
 
 
 
