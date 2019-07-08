@@ -231,8 +231,9 @@ def deleteCode(x) {
 }
 
 def getCodes() {
-    displayDebugLog ("API getCodes not implemented yet in Baling ")
-    return getLockCodes()
+    def jsonResponse = getLockCodes()
+    displayDebugLog ("getCodes method return :${jsonResponse}")
+    return jsonResponse
 }
 
 private getLockCodes() {
