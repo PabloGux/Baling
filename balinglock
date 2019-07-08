@@ -236,7 +236,7 @@ def getCodes() {
 }
 
 private getLockCodes() {
-	def jsonResponse = "{ 1: 'Admin', 11: 'Pablo', 12: 'Ale', 13: 'Dario', 14: 'Papa' }"
+	def jsonResponse = JsonOutput.toJson([1: "Admin", 11: "Pablo", 12: "Ale", 13: "Dario", 14: "Papa"])
 	return jsonResponse
 }
 
