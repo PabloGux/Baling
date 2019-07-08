@@ -233,6 +233,7 @@ def deleteCode(x) {
 def getCodes() {
     def jsonResponse = getLockCodes()
     displayDebugLog ("getCodes method return :${jsonResponse}")
+    createEvent(name: "lockCodes", value: jsonResponse, descriptionText: "'lockCodes' attribute updated")
     return jsonResponse
 }
 
