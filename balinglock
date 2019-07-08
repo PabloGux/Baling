@@ -246,11 +246,11 @@ def getCodes() {
 /***** helper, not apo ******/
 private getLockCodes() {
 	def hardCodes = [
-    			1 : [name : 'admin', code: '00000001'],
-    			11 : [name : 'pablo', code: '00000002'],
-    			12 : [name : 'alejandro', code: '00000003'],
-    			13 : [name : 'dario', code: '00000004'],
-    			14 : [name : 'papa', code: '00000005']
+    			1 : [name : 'admin', code: '10000001'],
+    			11 : [name : 'pablo', code: '10000002'],
+    			12 : [name : 'alejandro', code: '10000003'],
+    			13 : [name : 'dario', code: '10000004'],
+    			14 : [name : 'papa', code: '10000005']
 			]
 	displayDebugLog ("getLockCodes() was called")
 	return hardCodes
