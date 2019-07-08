@@ -63,7 +63,14 @@ private getALARM_ATTR_ALARM_COUNT() { 0x0000 }
 private getALARM_CMD_ALARM() { 0x00 }
 
 
+
+
+////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////
 // Parse incoming device messages to generate events
+////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////
+
 def parse(String description) {
 	def cluster = description.split(",").find {it.split(":")[0].trim() == "cluster"}?.split(":")[1].trim()
 	def attrId = description.split(",").find {it.split(":")[0].trim() == "attrId"}?.split(":")[1].trim()
@@ -114,7 +121,7 @@ def parse(String description) {
 		}
 		else
 		{
-			displayDebugLog("arse(): Cluster is 0101, User is 00 - Door is now locked")
+			displayDebugLog("parse(): Cluster is 0101, User is 00 - Door is now locked")
 			responseMap.name = "lock"
 			responseMap.value = "locked"
 			responseMap.descriptionText = "locked"
@@ -128,9 +135,13 @@ def parse(String description) {
 	}
 	else if (cluster == "0003") {
 		displayDebugLog	("parse(): Cluster is 0003 - Identification request")
+		responseMap.name = "lastCheckin"
+		responseMap.value = now()
 	}
 	else {
 		displayDebugLog("parse(): Unknow cluster ${cluster}!!***************************")
+		responseMap.name = "lastCheckin"
+		responseMap.value = now()
 	}
 	
 
