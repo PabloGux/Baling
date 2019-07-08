@@ -1,5 +1,22 @@
 /**
-
+ *  Baling Door Lock with zigbee module - model EZ-31S and others
+ *  Device Driver for Hubitat Elevation hub
+ *  Version 0.0.1
+ *  Author pgux
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License. You may obtain a copy of the License at:
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  for the specific language governing permissions and limitations under the License.
+ *
+ *  Based on Hubitat Virtual Lock device handler by Mike Maxwell and SmartThings ZigBee Lock device driver
+ *
+ *  Known issues:
+ *  + Mutiple Lock and LockCodes capabilities are not supported by Baling devices  
  *
  */
 import groovy.json.JsonSlurper
@@ -62,7 +79,6 @@ def parse(String description) {
 	def encoding = Integer.parseInt(description.split(",").find {it.split(":")[0].trim() == "encoding"}?.split(":")[1].trim(), 16)
 	def valueHex = description.split(",").find {it.split(":")[0].trim() == "value"}?.split(":")[1].trim()
 	def deviceName = device.displayName
-	Map map = [:]
 	Map responseMap = [:]
 	def result = []
 
@@ -116,8 +132,6 @@ def parse(String description) {
 		responseMap.value = now()
 	}
 	
-
-	
 	// createEvent returns a Map that defines an Event
 	result = createEvent(responseMap)
 	displayDebugLog("parse(): Exiting method returning with event created as follow: $result")
@@ -131,34 +145,23 @@ def parse(String description) {
 
 
 
-// Reverses order of bytes in hex string
-def reverseHexString(hexString) {
-	def reversed = ""
-	for (int i = hexString.length(); i > 0; i -= 2) {
-		reversed += hexString.substring(i - 2, i )
-	}
-	return reversed
-}
-
-
-// Convert raw 4 digit integer voltage value into percentage based on minVolts/maxVolts range
-private parseBattery(description) {
-}
-
-
 
 
 //////////////////////////////////////////////////////////////
 // capability commands
 /////////////////////////////////////////////////////////////
 def lock(){
-    displayDebugLog ("lock() method called")
+    def cmds = zigbee.command(CLUSTER_DOORLOCK, DOORLOCK_CMD_LOCK_DOOR)
+    displayDebugLog ("lock() method called - command send $cmds")
     sendEvent(name:"lock",value:"locked", type:"digital")
+    return cmds
 }
 
 def unlock(){
-    displayDebugLog ("unlock() method called")
+    def cmds = zigbee.command(CLUSTER_DOORLOCK, DOORLOCK_CMD_UNLOCK_DOOR)
+    displayDebugLog ("unlock() method called - command send $cmds")
     sendEvent(name:"lock",value:"unlocked", type:"digital")
+    return cmds
 }
 
 /***** API CALL ****/
@@ -170,7 +173,7 @@ def getCodes() {
     return jsonResponse
 }
 
-/***** helper, not apo ******/
+/***** helper, not api ******/
 private getLockCodes() {
 	def hardCodes = [
     			1 : [name : 'Admin', code: '10000001'],
@@ -212,7 +215,8 @@ def setCodeLength(length) {
 }
 
 def setCode(codeNumber, code, name = null) {
-    displayDebugLog ("API setCode not implemented yet in Baling ")
+    displayDebugLog ("setCode() - not implemented yet in Baling")
+
 }
 
 
@@ -233,6 +237,55 @@ private def displayDebugLog(message) {
 private def displayInfoLog(message) {
 	if (infoLogging || state.prefsSetCount != 1)
 		log.info "${device.displayName}: ${message}"
+}
+
+/**
+ * Checks if the slot number is within the allowed limits
+ *
+ * @param codeID The code slot number
+ *
+ * @param allowMasterCode Flag to indicate if master code slot should be allowed as a valid slot
+ *
+ * @return true if valid, false if not
+ */
+private boolean isValidCodeID(codeID, allowMasterCode = false) {
+	def defaultMaxCodes = 100
+	def minCodeId = 11
+	def maxCodes = device.currentValue("maxCodes") ?: defaultMaxCodes
+	if (codeID.toInteger() >= minCodeId && codeID.toInteger() <= maxCodes) {
+		return true
+	}
+	return false
+}
+
+/**
+ * Checks if the code PIN is valid
+ *
+ * @param code The code PIN
+ *
+ * @return true if valid, false if not
+ */
+private boolean isValidCode(code) {
+	def minCodeLength = device.currentValue("minCodeLength") ?: 8
+	def maxCodeLength = device.currentValue("maxCodeLength") ?: 12
+	if (code.toString().size() <= maxCodeLength && code.toString().size() >= minCodeLength && code.isNumber()) {
+		return true
+	}
+	return false
+}
+
+
+
+
+
+/**
+ * Called on app installed
+ */
+def installed(){
+    log.warn "installed..."
+    sendEvent(name:"maxCodes",value:20)
+    sendEvent(name:"codeLength",value:8)
+    lock()
 }
 
 
@@ -260,22 +313,9 @@ def validateAttributes() {
 		cmds += zigbee.readAttribute(CLUSTER_DOORLOCK, DOORLOCK_ATTR_MAX_PIN_LENGTH)
 	}
 	cmds = cmds.flatten()
-	displayDebugLog ("validateAttributes returning commands list: $cmds")
+	log.trace "validateAttributes returning commands list: " + cmds
 	cmds
 }
-
-
-
-/**
- * Called on app installed
- */
-def installed(){
-    log.warn "installed..."
-    sendEvent(name:"maxCodes",value:20)
-    sendEvent(name:"codeLength",value:8)
-    lock()
-}
-
 
 
 
