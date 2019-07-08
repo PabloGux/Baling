@@ -238,17 +238,23 @@ def deleteCode(x) {
 /***** API CALL ****/
 def getCodes() {
     displayDebugLog ("getCodes() was called")
-    def jsonResponse = getLockCodes()
+    def jsonResponse = JsonOutput.toJson(getLockCodes())
     displayDebugLog ("getCodes method return :${jsonResponse}")
     sendEvent (name: "lockCodes", value: jsonResponse, descriptionText: "'lockCodes' attribute updated")
     return jsonResponse
 }
 /***** helper, not apo ******/
 private getLockCodes() {
+	def hardCodes = [
+    			1 : [name : 'admin', code: '00000001'],
+    			11 : [name : 'pablo', code: '00000002'],
+    			12 : [name : 'alejandro', code: '00000003'],
+    			13 : [name : 'dario', code: '00000004'],
+    			14 : [name : 'papa', code: '00000005']
+			]
 	displayDebugLog ("getLockCodes() was called")
-	// def jsonResponse = JsonOutput.toJson([1: "Admin", 11: "Pablo", 12: "Ale", 13: "Dario", 14: "Papa"])
-	// return jsonResponse
-	return '{1:{name:"Admin",code:"00000000"},11:{name:"Pablo",code:"00000000"},12:{name:"Alejandro",code:"00000000"},13:{name:"Dario",code:"00000000"}}'
+	return hardCodes
+	//return '{1:{name:"Admin",code:"00000000"},11:{name:"Pablo",code:"00000000"},12:{name:"Alejandro",code:"00000000"},13:{name:"Dario",code:"00000000"}}'
 }
 
 def setCodeLength(length) {
