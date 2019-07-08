@@ -232,8 +232,14 @@ def deleteCode(x) {
 
 def getCodes() {
     displayDebugLog ("API getCodes not implemented yet in Baling ")
+    return getLockCodes()
 }
 
+private getLockCodes() {
+{
+	def jsonResponse = "{ 1: 'Admin', 11: 'Pablo', 12: 'Ale', 13: 'Dario', 14: 'Papa' }"
+	return jsonResponse
+}
 
 def setCodeLength(length) {
    displayDebugLog ("API setCodeLength not implemented yet in Baling ")
