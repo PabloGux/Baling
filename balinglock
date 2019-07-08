@@ -370,11 +370,12 @@ def testUnlockWithCode(code = null){
 	lockCodes in this context calls the helper function getLockCodes()
 	*/
     def lockCode = lockCodes.find{ it.value.code == "${code}" }
+    displayDebugLog ("testUnlockWithCode() linea despues del lockcode.find que creo que da error! propiedad code?")
+
     if (lockCode){
         def data = ["${lockCode.key}":lockCode.value]
         def descriptionText = "${device.displayName} was unlocked [physical]"
-        if (txtEnable) log.info "${descriptionText}"
-	displayDebugLog ("testUnlockWithCode() sending unlock event with data: ${data}")
+	displayDebugLog ("testUnlockWithCode() sending unlock event with data: ${data} and dexcription ${descriptionText}")
 	sendEvent(name:"lock",value:"unlocked",descriptionText: descriptionText, type:"physical",data:data)
     } else {
         if (txtEnable) log.debug "testUnlockWithCode failed with invalid code"
