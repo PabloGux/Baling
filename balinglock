@@ -115,8 +115,15 @@ def parse(String description) {
 			displayDebugLog("parse(): Cluster is 0101 - User Unlock in dec: ${userCode}")
 			responseMap.name = "lock"
 			responseMap.value = "unlocked"
-			responseMap.descriptionText = "Unlocked by ${userCode}"
-			responseMap.data = [ name: userCode, codeId: userCode as String, usedCode: userCode, codeName: userCode, method: "keypad" ]
+			def lockCode = lockCodes.find{ it.key == "${userCode}" }
+			if (lockCode){
+        			responseMap.data = ["${lockCode.key}":lockCode.value]
+        			displayDebugLog ("parse(): Response Data was formed: ${responseMap.data}")
+				
+    			} else {
+         			displayDebugLog ("parse(): unlock code not found in database!")
+				responseMap.data = [${userCode}:[name:${userCode}, code:${userCode}]]
+    			}
 		}
 		else
 		{
@@ -144,12 +151,6 @@ def parse(String description) {
 	}
 	
 
-	if (responseMap.data) {
-		responseMap.data.lockName = deviceName
-	} else {
-		responseMap.data = [ lockName: deviceName ]
-	}
-	
 	
 	// createEvent returns a Map that defines an Event
 	result = createEvent(responseMap)
