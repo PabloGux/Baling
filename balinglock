@@ -24,6 +24,7 @@ metadata {
 		// fingerprint endpointId: "01", profileId: "0104", deviceId: "5F01", inClusters: "0000,0003,FFFF,0006", outClusters: "0000,0004,FFFF", manufacturer: "LUMI", model: "lumi.sensor_magnet.aq2"
 
 		command "testUnlockWithCode", ["NUMBER"]
+        command "testUnlockWithUserNumber" , ["NUMBER"]
 
 	}
 
@@ -115,14 +116,16 @@ def parse(String description) {
 			displayDebugLog("parse(): Cluster is 0101 - User Unlock in dec: ${userCode}")
 			responseMap.name = "lock"
 			responseMap.value = "unlocked"
-			def lockCode = lockCodes.find{ it.key == "${userCode}" }
+			def lockCode = lockCodes.find{ it.key == userCode }
 			if (lockCode){
+                displayDebugLog ("parse(): username found ${lockCode.value} forming map Data" )
         			responseMap.data = ["${lockCode.key}":lockCode.value]
         			displayDebugLog ("parse(): Response Data was formed: ${responseMap.data}")
-				
     			} else {
          			displayDebugLog ("parse(): unlock code not found in database!")
 				responseMap.data = ["${userCode}":[name:"${userCode}", code:"${userCode}"]]
+                
+                
     			}
 		}
 		else
@@ -386,5 +389,23 @@ def testUnlockWithCode(code = null){
 	sendEvent(name:"lock",value:"unlocked",descriptionText: descriptionText, type:"physical",data:data)
     } else {
          displayDebugLog ("testUnlockWithCode() code not found! ending")
+    }
+}
+
+
+def testUnlockWithUserNumber(code = null){
+    displayDebugLog ("testUnlockWithUserNumber() called with code: ${code}")
+    /*
+	lockCodes in this context calls the helper function getLockCodes()
+	*/
+    def lockCode = lockCodes.find{ it.key == code }
+
+    if (lockCode){
+        def data = ["${lockCode.key}":lockCode.value]
+        def descriptionText = "${device.displayName} was unlocked [physical]"
+	    displayDebugLog ("testUnlockWithUserNumber() sending unlock event with data: ${data} and description ${descriptionText}")
+	    sendEvent(name:"lock",value:"unlocked",descriptionText: descriptionText, type:"physical",data:data)
+    } else {
+         displayDebugLog ("testUnlockWithUserNumber() code ${code} not found! ending")
     }
 }
