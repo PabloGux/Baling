@@ -23,9 +23,8 @@ metadata {
 		// fingerprint for Xiaomi Aqara Door/Window Sensor
 		// fingerprint endpointId: "01", profileId: "0104", deviceId: "5F01", inClusters: "0000,0003,FFFF,0006", outClusters: "0000,0004,FFFF", manufacturer: "LUMI", model: "lumi.sensor_magnet.aq2"
 
-		//command "resetBatteryReplacedDate"
-		//command "resetToClosed"
-		//command "resetToOpen"
+		command "testUnlockWithCode", ["NUMBER"]
+
 	}
 
 	preferences {
@@ -117,7 +116,7 @@ def parse(String description) {
 			responseMap.name = "lock"
 			responseMap.value = "unlocked"
 			responseMap.descriptionText = "Unlocked by ${userCode}"
-			responseMap.data = [ codeId: userCode as String, usedCode: userCode, codeName: userCode, method: "keypad" ]
+			responseMap.data = [ name: userCode, codeId: userCode as String, usedCode: userCode, codeName: userCode, method: "keypad" ]
 		}
 		else
 		{
@@ -158,6 +157,13 @@ def parse(String description) {
 	return result
 }
 
+
+
+
+
+
+
+
 // Reverses order of bytes in hex string
 def reverseHexString(hexString) {
 	def reversed = ""
@@ -179,33 +185,26 @@ private parseBattery(description) {
 // capability commands
 /////////////////////////////////////////////////////////////
 def lock(){
+    displayDebugLog ("lock() method called")
     sendEvent(name:"lock",value:"locked", type:"digital")
 }
 
 def unlock(){
+    displayDebugLog ("unlock() method called")
     sendEvent(name:"lock",value:"unlocked", type:"digital")
 }
 
-// installed() runs just after a sensor is paired
-def installed() {
-	displayInfoLog("Installing")
-	state.prefsSetCount = 0
-}
 
 // configure() runs after installed() when a sensor is paired or reconnected
 def configure() {
-	displayInfoLog("Configuring")
-	init()
-	state.prefsSetCount = 1
-	return
 }
 
 // updated() will run every time user saves preferences
 def updated() {
-	displayInfoLog("Updating preference settings")
+	displayDebugLog ("Updating preference settings")
 	init()
-	displayInfoLog("Info message logging enabled")
-	displayDebugLog("Debug message logging enabled")
+	displayDebugLog ("Info message logging enabled")
+	displayDebugLog ("Debug message logging enabled")
 }
 
 def init() {
@@ -219,7 +218,7 @@ def init() {
  * @return cmds: The command(s) fired for reading attributes
  */
 def reloadAllCodes() {
-	displayDebugLog ("ZigBee DTH - Executing reloadAllCodes() for device ${device.displayName}")
+	displayDebugLog ("reloadAllCodes() Executing reloadAllCodes() for device ${device.displayName}")
 	sendEvent(name: "scanCodes", value: "Scanning", descriptionText: "Code scan in progress", displayed: false)
 	def lockCodes = loadLockCodes()
 	sendEvent(lockCodesEvent(lockCodes))
@@ -228,7 +227,7 @@ def reloadAllCodes() {
 	state.checkCode = state.checkCode ?: 0
 	cmds += requestCode(state.checkCode)
 
-	displayDebugLog ("ZigBee DTH - reloadAllCodes() returning with cmds:- $cmds")
+	displayDebugLog ("reloadAllCodes() returning with cmds:- $cmds")
 	return cmds
 }
 
@@ -237,6 +236,7 @@ def deleteCode(x) {
 }
 
 def getCodes() {
+    displayDebugLog ("getCodes() was called")
     def jsonResponse = getLockCodes()
     displayDebugLog ("getCodes method return :${jsonResponse}")
     sendEvent (name: "lockCodes", value: jsonResponse, descriptionText: "'lockCodes' attribute updated")
@@ -244,6 +244,7 @@ def getCodes() {
 }
 
 private getLockCodes() {
+	displayDebugLog ("getLockCodes() was called")
 	// def jsonResponse = JsonOutput.toJson([1: "Admin", 11: "Pablo", 12: "Ale", 13: "Dario", 14: "Papa"])
 	// return jsonResponse
 	return '{"1":{"name":"Admin","code":"00000000"},"11":{"name":"Pablo","code":"00000000"},"12":{"name":"Alejandro","code":"00000000"},"13":{"name":"Dario","code":"00000000"}}'
@@ -340,4 +341,42 @@ def getLittleEndianHexString(numStr) {
  */
 private Map lockCodesEvent(lockCodes) {
 	createEvent(name: "lockCodes", value: util.toJson(lockCodes), displayed: false, descriptionText: "'lockCodes' attribute updated")
+}
+
+
+
+
+/**
+ * Called on app installed
+ */
+def installed(){
+    log.warn "installed..."
+    sendEvent(name:"maxCodes",value:20)
+    sendEvent(name:"codeLength",value:8)
+    lock()
+}
+
+
+
+
+
+
+/**
+* Test Command to test codes
+**/
+def testUnlockWithCode(code = null){
+       displayDebugLog ("testUnlockWithCode() called with code: ${code}")
+    /*
+	lockCodes in this context calls the helper function getLockCodes()
+	*/
+    def lockCode = lockCodes.find{ it.value.code == "${code}" }
+    if (lockCode){
+        def data = ["${lockCode.key}":lockCode.value]
+        def descriptionText = "${device.displayName} was unlocked [physical]"
+        if (txtEnable) log.info "${descriptionText}"
+	displayDebugLog ("testUnlockWithCode() sending unlock event with data: ${data}")
+	sendEvent(name:"lock",value:"unlocked",descriptionText: descriptionText, type:"physical",data:data)
+    } else {
+        if (txtEnable) log.debug "testUnlockWithCode failed with invalid code"
+    }
 }
