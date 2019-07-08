@@ -45,6 +45,7 @@ metadata {
 // Globals - Cluster IDs
 private getCLUSTER_POWER() { 0x0001 }
 private getCLUSTER_DOORLOCK() { 0x0101 }
+private getCLUSTER_IDENTIFICATION() { 0x0003 }
 private getCLUSTER_ALARM() { 0x0009 }
 
 // Globals - Command IDs
@@ -72,9 +73,24 @@ private getALARM_CMD_ALARM() { 0x00 }
 // Parse incoming device messages to generate events
 ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////
-
 def parse(String description) {
-	def cluster = description.split(",").find {it.split(":")[0].trim() == "cluster"}?.split(":")[1].trim()
+	displayDebugLog("parse(): Parsing message: ${description}")
+	def result = null
+	if (description) {
+		if (description.startsWith('read attr -')) {
+			result = parseAttributeResponse(description)
+		} else {
+			result = parseCommandResponse(description)
+		}
+	}
+	return result
+}
+
+
+
+def parseAttributeResponse(String description) {
+	    
+    def cluster = Integer.parseInt(description.split(",").find {it.split(":")[0].trim() == "cluster"}?.split(":")[1].trim(), 16)
 	def attrId = description.split(",").find {it.split(":")[0].trim() == "attrId"}?.split(":")[1].trim()
 	def encoding = Integer.parseInt(description.split(",").find {it.split(":")[0].trim() == "encoding"}?.split(":")[1].trim(), 16)
 	def valueHex = description.split(",").find {it.split(":")[0].trim() == "value"}?.split(":")[1].trim()
@@ -82,7 +98,6 @@ def parse(String description) {
 	Map responseMap = [:]
 	def result = []
 
-	displayDebugLog("parse(): Parsing message: ${description}")
 	displayDebugLog("parse(): Message payload: ${valueHex}")
 
 	// lastCheckin can be used with webCoRE
@@ -121,7 +136,7 @@ def parse(String description) {
         displayDebugLog	("parse(): Battery is at ${responseMap.value}%")
 		responseMap.descriptionText = "Battery is at ${responseMap.value}%"
 	}
-	else if (cluster == "0003") {
+	else if (cluster == CLUSTER_IDENTIFICATION) {
 		displayDebugLog	("parse(): Cluster is 0003 - Identification request")
 		responseMap.name = "lastCheckin"
 		responseMap.value = now()
@@ -139,12 +154,76 @@ def parse(String description) {
 }
 
 
+private def parseCommandResponse(String description) {
+    Map descMap = zigbee.parseDescriptionAsMap(description)
+	def deviceName = device.displayName
+    def result = []
+	Map responseMap = [:]
+	def data = descMap.data
+    def cmd = descMap.commandInt
+	def clusterInt = descMap.clusterInt
+    
+    displayDebugLog ("parseCommandResponse(): Mapped commandResponse: $descMap")
+    
+    if (clusterInt == CLUSTER_DOORLOCK && (cmd == DOORLOCK_CMD_LOCK_DOOR || cmd == DOORLOCK_CMD_UNLOCK_DOOR)) {
+		 displayDebugLog ("parseCommandResponse(): Executing DOOR LOCK/UNLOCK SUCCESS with description map:- $descMap")
+		// Reading lock state with a delay of 4200 as some locks do not report their state change
+		def cmdList = []
+		cmdList << "delay 4200"
+		cmdList << zigbee.readAttribute(CLUSTER_DOORLOCK, DOORLOCK_ATTR_LOCKSTATE).first()
+		result << response(cmdList)
+    } else if (clusterInt == CLUSTER_DOORLOCK && cmd == DOORLOCK_RESPONSE_OPERATION_EVENT) {
+        
+        displayDebugLog ("parseCommandResponse(): Executing DOORLOCK_RESPONSE_OPERATION_EVENT with description map:- $descMap")       
+		def eventSource = Integer.parseInt(data[0], 16)
+		def eventCode = Integer.parseInt(data[1], 16)
+        responseMap.name = "lock"
+		responseMap.displayed = true
+		responseMap.isStateChange = true  
+		
+        def desc = ""
+		def codeName = ""
+        if (eventSource == 0) {
+			def codeID = Integer.parseInt(data[3] + data[2], 16)
+            responseMap.data = ["${codeID}":[name:"${codeID}", code:"${codeID}"]]
+  		} else if (eventSource == 1) {
+			responseMap.data = [ method: "command" ]
+		} else if (eventSource == 2) {
+			desc = "manually"
+			responseMap.data = [ method: "manual" ]
+		}
+        switch (eventCode) {
+			case 1:
+				responseMap.value = "locked"
+				break
+			case 2:
+				responseMap.value = "unlocked"
+				break
+			case 13: // locked using the Thumbturn
+				responseMap.value = "locked"
+				break
+			case 9: // unlocked using the key
+			case 14: // unlocked using the Thumbturn
+				responseMap.value = "unlocked"
+				break
+			case 10: //Auto lock
+				responseMap.value = "locked"
+				break
+			default:
+				break
+		}
+        
+    }
+    else {
+		displayDebugLog ("parseCommandResponse(): ignoring command response as it is not mapped in the code")
+	}        
+        
+    if(responseMap["value"]) {
+		result << createEvent(responseMap)
+	}
+    return result
 
-
-
-
-
-
+}
 
 
 //////////////////////////////////////////////////////////////
@@ -152,14 +231,14 @@ def parse(String description) {
 /////////////////////////////////////////////////////////////
 def lock(){
     def cmds = zigbee.command(CLUSTER_DOORLOCK, DOORLOCK_CMD_LOCK_DOOR)
-    displayDebugLog ("lock() method called - command send $cmds")
+    displayDebugLog ("lock() method called - command sent $cmds")
     sendEvent(name:"lock",value:"locked", type:"digital")
     return cmds
 }
 
 def unlock(){
     def cmds = zigbee.command(CLUSTER_DOORLOCK, DOORLOCK_CMD_UNLOCK_DOOR)
-    displayDebugLog ("unlock() method called - command send $cmds")
+    displayDebugLog ("unlock() method called - command sent $cmds")
     sendEvent(name:"lock",value:"unlocked", type:"digital")
     return cmds
 }
