@@ -264,7 +264,7 @@ private getLockCodes() {
 			]
 	displayDebugLog ("getLockCodes() was called")
 	return hardCodes
-	//return '{1:{name:"Admin",code:"00000000"},11:{name:"Pablo",code:"00000000"},12:{name:"Alejandro",code:"00000000"},13:{name:"Dario",code:"00000000"}}'
+	//return '{1:{name:"cc",code:"00000000"},11:{name:"cc",code:"00000000"},12:{name:"cc",code:"00000000"},13:{name:"Dcccario",code:"00000000"}}'
 }
 
 // configure() runs after installed() when a sensor is paired or reconnected
